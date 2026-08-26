@@ -24,6 +24,7 @@ RUN sed -i 's/Listen 80/Listen 8080/' /etc/apache2/ports.conf \
 RUN sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' \
         /etc/apache2/apache2.conf
 
+
 # WP-CLI
 RUN curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
         -o /usr/local/bin/wp \
@@ -40,6 +41,7 @@ RUN curl -fsSL https://wordpress.org/latest.tar.gz \
     && cp -a /var/www/html /var/www/html-seed
 
 COPY entrypoint.sh /entrypoint.sh
+COPY .htaccess /var/www/html/.htaccess
 
 EXPOSE 8080
 

@@ -32,6 +32,9 @@ if [ ! -d "${WP_DIR}/wp-content/themes" ]; then
     cp -a /var/www/html-seed/wp-content/. "${WP_DIR}/wp-content/"
 fi
 
+# Allow www-data (Apache) to write to wp-content (bind mount is owned by root)
+chmod -R 777 "${WP_DIR}/wp-content"
+
 # Generate wp-config.php if missing (container is ephemeral, config is not)
 if [ ! -f "${WP_DIR}/wp-config.php" ]; then
     wp config create \
@@ -42,6 +45,9 @@ if [ ! -f "${WP_DIR}/wp-config.php" ]; then
         --dbhost="localhost" \
         --allow-root
 fi
+
+# Allow WordPress to write files directly without FTP
+wp config set FS_METHOD direct --path="${WP_DIR}" --allow-root 2>/dev/null || true
 
 # Run WordPress install only if not already installed in the database
 if ! wp core is-installed --path="${WP_DIR}" --allow-root 2>/dev/null; then

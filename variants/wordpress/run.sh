@@ -28,7 +28,7 @@ podman run -it --rm \
   -v wordpress-db:/var/lib/mysql \
   -v "${HOME}/.gitconfig":/root/.gitconfig:ro \
   -v "${HOME}/.ssh":/root/.ssh:ro \
-  -p "${HOST_PORT}":8080 \
+  -p "0.0.0.0:${HOST_PORT}:8080" \
   -e WP_PORT="${HOST_PORT}" \
   "${EXTRA_MOUNTS[@]+"${EXTRA_MOUNTS[@]}"}" \
   --workdir /workspace/"${PROJECT_NAME}" \
