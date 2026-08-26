@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(git push:*)",
+      "Bash(git push*)",
+      "Read(**/.env)",
+      "Read(**/.ssh/**)"
+    ]
+  },
+  "disableBypassPermissionsMode": "disable"
+}

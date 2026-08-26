@@ -12,9 +12,9 @@ touch "${HOME}/.claude.json"
 # Each path is mounted read-write at /workspace/<dirname>.
 EXTRA_MOUNTS=()
 for dir in "$@"; do
-    abs=$(realpath "${dir}")
-    name=$(basename "${abs}")
-    EXTRA_MOUNTS+=(-v "${abs}":/workspace/"${name}")
+  abs=$(realpath "${dir}")
+  name=$(basename "${abs}")
+  EXTRA_MOUNTS+=(-v "${abs}":/workspace/"${name}")
 done
 
 # To isolate network access, uncomment: --network none
@@ -24,7 +24,6 @@ podman run -it --rm \
   -v "${HOME}/.claude.json":/root/.claude.json \
   -v "$(pwd)":/workspace/"${PROJECT_NAME}" \
   -v "${HOME}/.gitconfig":/root/.gitconfig:ro \
-  -v "${HOME}/.ssh":/root/.ssh:ro \
   "${EXTRA_MOUNTS[@]+"${EXTRA_MOUNTS[@]}"}" \
   --workdir /workspace/"${PROJECT_NAME}" \
   "${IMAGE}" \

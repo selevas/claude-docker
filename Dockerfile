@@ -62,7 +62,9 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
     && rm -rf /var/lib/apt/lists/*
 
 # Claude Code CLI
-RUN npm install -g @anthropic-ai/claude-code \
+COPY managed-settings.json /etc/claude-code/managed-settings.json
+ARG CLAUDE_CODE_VERSION=2.1.186
+RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} \
     && mkdir -p /root/.local/bin \
     && ln -s "$(which claude)" /root/.local/bin/claude
 
