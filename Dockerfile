@@ -47,6 +47,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_MAJOR}.x | bash - \
 RUN curl -LO https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep_14.1.1-1_amd64.deb \
     && dpkg -i ripgrep_14.1.1-1_amd64.deb \
     && rm ripgrep_14.1.1-1_amd64.deb
+
 RUN curl -LO https://github.com/sharkdp/fd/releases/download/v10.2.0/fd-musl_10.2.0_amd64.deb \
     && dpkg -i fd-musl_10.2.0_amd64.deb \
     && rm fd-musl_10.2.0_amd64.deb
@@ -72,7 +73,38 @@ RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} \
 # bind-mounted files owned by the host user are accessible as root here.
 # HOME is set to match the .claude bind mount target in run.sh.
 ENV HOME=/root
-ENV PATH="/root/.local/bin:${PATH}"
+ENV PNPM_HOME=/root/.local/share/pnpm
+ENV PATH="/root/.local/bin:${PNPM_HOME}:${PATH}"
+
+# pnpm, pinned and baked into the image.
+#
+# Installed via npm rather than corepack so the binary is present at build
+# time with no runtime network round trip and no version resolution.
+#
+# npm itself is NOT removed: it ships inside the NodeSource nodejs package
+# and installs the Claude Code CLI above. pnpm is added alongside it, and is
+# the package manager for the workspace.
+ARG PNPM_VERSION=10.15.0
+RUN npm install -g pnpm@${PNPM_VERSION}
+
+# pnpm configuration, written to the home-level .npmrc.
+#
+# manage-package-manager-versions=false
+#   pnpm 9+ otherwise honours the "packageManager" field in package.json and
+#   self-downloads a matching version on every fresh container. Disabling it
+#   means the image's pinned PNPM_VERSION above always wins.
+#
+# store-dir=/workspace/.pnpm-store
+#   pnpm hardlinks from its content-addressable store into node_modules, and
+#   hardlinks cannot cross filesystems. Keeping the store on the bind-mounted
+#   workspace (same filesystem as node_modules) preserves hardlinking and lets
+#   the store survive container restarts without an extra host bind mount.
+#   Add .pnpm-store/ to .gitignore.
+RUN mkdir -p /root \
+    && printf '%s\n' \
+        'manage-package-manager-versions=false' \
+        'store-dir=/workspace/.pnpm-store' \
+        >> /root/.npmrc
 
 WORKDIR /workspace
 
