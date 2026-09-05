@@ -1,7 +1,7 @@
 FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV NODE_MAJOR=22
+ENV NODE_MAJOR=24
 
 # Base system tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -38,10 +38,28 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     zsh \
     && rm -rf /var/lib/apt/lists/*
 
-# Node.js (via NodeSource)
+# Node.js (via NodeSource), with npm bumped to latest afterward since the
+# NodeSource package pins whatever npm shipped with that Node release.
 RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_MAJOR}.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && npm install -g npm@latest
+
+# nvm, for installing/switching to specific Node or npm versions on demand.
+# The NodeSource install above remains the default `node`/`npm` on PATH;
+# nvm only takes over once a shell sources it (via .bashrc/.zshrc below) and
+# `nvm use` is run.
+ARG NVM_VERSION=0.40.7
+ENV NVM_DIR=/root/.nvm
+RUN curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_VERSION}/install.sh" | bash \
+    && for rc in /root/.bashrc /root/.zshrc; do \
+        touch "$rc"; \
+        grep -q 'NVM_DIR' "$rc" || printf '%s\n' \
+            'export NVM_DIR="$HOME/.nvm"' \
+            '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' \
+            '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"' \
+            >> "$rc"; \
+    done
 
 # ripgrep and fd (fast search tools Claude Code uses heavily)
 RUN curl -LO https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep_14.1.1-1_amd64.deb \
@@ -84,7 +102,7 @@ ENV PATH="/root/.local/bin:${PNPM_HOME}:${PATH}"
 # npm itself is NOT removed: it ships inside the NodeSource nodejs package
 # and installs the Claude Code CLI above. pnpm is added alongside it, and is
 # the package manager for the workspace.
-ARG PNPM_VERSION=10.15.0
+ARG PNPM_VERSION=11.25.0
 RUN npm install -g pnpm@${PNPM_VERSION}
 
 # pnpm configuration, written to the home-level .npmrc.
