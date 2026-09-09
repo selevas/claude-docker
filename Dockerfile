@@ -84,8 +84,10 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
 COPY managed-settings.json /etc/claude-code/managed-settings.json
 ARG CLAUDE_CODE_VERSION=2.1.186
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} \
+    && node "$(npm root -g)/@anthropic-ai/claude-code/install.cjs" \
     && mkdir -p /root/.local/bin \
-    && ln -s "$(which claude)" /root/.local/bin/claude
+    && ln -s "$(which claude)" /root/.local/bin/claude \
+    && claude --version
 
 # In rootless Podman, UID 0 inside the container maps to the host user, so
 # bind-mounted files owned by the host user are accessible as root here.
