@@ -81,8 +81,13 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
     && rm -rf /var/lib/apt/lists/*
 
 # Claude Code CLI
+#
+# The version is pinned via CLAUDE_CODE_VERSION, so the in-app auto-updater is
+# disabled. Its background `npm install -g` skips install.cjs, which leaves
+# bin/claude.exe as a stub and breaks every launch after the first.
 COPY managed-settings.json /etc/claude-code/managed-settings.json
 ARG CLAUDE_CODE_VERSION=2.1.186
+ENV DISABLE_AUTOUPDATER=1
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} \
     && node "$(npm root -g)/@anthropic-ai/claude-code/install.cjs" \
     && mkdir -p /root/.local/bin \
