@@ -109,8 +109,14 @@ ENV PATH="/root/.local/bin:${PNPM_HOME}:${PATH}"
 # npm itself is NOT removed: it ships inside the NodeSource nodejs package
 # and installs the Claude Code CLI above. pnpm is added alongside it, and is
 # the package manager for the workspace.
+#
+# npm skips pnpm's install script here, which would leave the `pnpm` bin as a
+# placeholder that runs pnpm through Node.js on every call. Running it by hand
+# swaps in the native binary.
 ARG PNPM_VERSION=12.3.4
-RUN npm install -g pnpm@${PNPM_VERSION}
+RUN npm install -g pnpm@${PNPM_VERSION} \
+    && node "$(npm root -g)/pnpm/install.js" \
+    && pnpm --version
 
 # pnpm configuration, written to the home-level .npmrc.
 #
