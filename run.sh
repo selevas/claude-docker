@@ -4,6 +4,10 @@ set -euo pipefail
 IMAGE="claude-sandbox"
 PROJECT_NAME=$(basename "$(pwd)")
 
+# Dev server port mapping, published on the host's loopback only.
+EXTERNAL_PORT="${DEV_EXTERNAL_PORT:-5173}"
+INTERNAL_PORT="${DEV_INTERNAL_PORT:-5173}"
+
 # Claude Code stores onboarding state here (outside ~/.claude/)
 touch "${HOME}/.claude.json"
 
@@ -24,6 +28,7 @@ podman run -it --rm \
   -v "${HOME}/.claude.json":/root/.claude.json \
   -v "$(pwd)":/workspace/"${PROJECT_NAME}" \
   -v "${HOME}/.gitconfig":/root/.gitconfig:ro \
+  -p "127.0.0.1:${EXTERNAL_PORT}:${INTERNAL_PORT}" \
   "${EXTRA_MOUNTS[@]+"${EXTRA_MOUNTS[@]}"}" \
   --workdir /workspace/"${PROJECT_NAME}" \
   "${IMAGE}" \
