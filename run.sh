@@ -21,6 +21,11 @@ shift $((OPTIND - 1))
 # Claude Code stores onboarding state here (outside ~/.claude/)
 touch "${HOME}/.claude.json"
 
+# pnpm store, shared by every sandbox and kept across container runs.
+# Mounted at /workspace/.pnpm-store, which the image's .npmrc points at.
+PNPM_STORE="${PNPM_STORE_DIR:-${HOME}/.cache/claude-sandbox/pnpm-store}"
+mkdir -p "${PNPM_STORE}"
+
 # Build extra mount flags from any additional arguments.
 # Usage: claude-docker [-p external-port] [extra-path ...]
 # Each path is mounted read-write at /workspace/<dirname>.
@@ -37,6 +42,7 @@ podman run -it --rm \
   -v "${HOME}/.claude":/root/.claude \
   -v "${HOME}/.claude.json":/root/.claude.json \
   -v "$(pwd)":/workspace/"${PROJECT_NAME}" \
+  -v "${PNPM_STORE}":/workspace/.pnpm-store \
   -v "${HOME}/.gitconfig":/root/.gitconfig:ro \
   -p "127.0.0.1:${EXTERNAL_PORT}:${INTERNAL_PORT}" \
   "${EXTRA_MOUNTS[@]+"${EXTRA_MOUNTS[@]}"}" \

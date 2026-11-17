@@ -126,11 +126,15 @@ RUN npm install -g pnpm@${PNPM_VERSION} \
 #   means the image's pinned PNPM_VERSION above always wins.
 #
 # store-dir=/workspace/.pnpm-store
-#   pnpm hardlinks from its content-addressable store into node_modules, and
-#   hardlinks cannot cross filesystems. Keeping the store on the bind-mounted
-#   workspace (same filesystem as node_modules) preserves hardlinking and lets
-#   the store survive container restarts without an extra host bind mount.
-#   Add .pnpm-store/ to .gitignore.
+#   run.sh bind-mounts a host directory here (PNPM_STORE_DIR, default
+#   ~/.cache/claude-sandbox/pnpm-store), so the store survives the --rm
+#   container and is shared by every sandbox running side by side. pnpm's
+#   store is content-addressable and safe for concurrent use.
+#
+#   Trade-off: link(2) refuses to hardlink across mount points even when both
+#   sit on the same host filesystem, so pnpm falls back to copying packages
+#   into node_modules instead of hardlinking. Installs still skip the
+#   network; they just use more disk per project.
 RUN mkdir -p /root \
     && printf '%s\n' \
         'manage-package-manager-versions=false' \
