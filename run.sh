@@ -8,11 +8,21 @@ PROJECT_NAME=$(basename "$(pwd)")
 EXTERNAL_PORT="${DEV_EXTERNAL_PORT:-5173}"
 INTERNAL_PORT="${DEV_INTERNAL_PORT:-5173}"
 
+# -p overrides DEV_EXTERNAL_PORT, e.g. to run several sandboxes side by side.
+while getopts ":p:" opt; do
+  case "${opt}" in
+    p) EXTERNAL_PORT="${OPTARG}" ;;
+    :) echo "Option -${OPTARG} requires a port" >&2; exit 1 ;;
+    *) echo "Unknown option: -${OPTARG}" >&2; exit 1 ;;
+  esac
+done
+shift $((OPTIND - 1))
+
 # Claude Code stores onboarding state here (outside ~/.claude/)
 touch "${HOME}/.claude.json"
 
 # Build extra mount flags from any additional arguments.
-# Usage: claude-docker [extra-path ...]
+# Usage: claude-docker [-p external-port] [extra-path ...]
 # Each path is mounted read-write at /workspace/<dirname>.
 EXTRA_MOUNTS=()
 for dir in "$@"; do
