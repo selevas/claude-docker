@@ -1,7 +1,6 @@
 FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV NODE_MAJOR=24
 
 # Base system tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -40,9 +39,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Node.js (via NodeSource), with npm bumped to latest afterward since the
 # NodeSource package pins whatever npm shipped with that Node release.
-RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_MAJOR}.x | bash - \
-    && apt-get install -y --no-install-recommends nodejs \
+#
+# Pinned to an exact release so that bumping NODE_VERSION invalidates the
+# build cache. Tracking only the major version left this layer cached on
+# whatever patch release was current at the first build, missing security
+# fixes. NodeSource publishes several builds of each release under different
+# suffixes, hence the wildcard; the version check fails the build if the
+# pin didn't take.
+ARG NODE_VERSION=24.22.3
+RUN curl -fsSL "https://deb.nodesource.com/setup_${NODE_VERSION%%.*}.x" | bash - \
+    && apt-get install -y --no-install-recommends "nodejs=${NODE_VERSION}-*" \
     && rm -rf /var/lib/apt/lists/* \
+    && test "$(node --version)" = "v${NODE_VERSION}" \
     && npm install -g npm@latest
 
 # nvm, for installing/switching to specific Node or npm versions on demand.
