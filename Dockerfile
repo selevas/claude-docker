@@ -90,6 +90,15 @@ RUN curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg \
     && rm -rf /var/lib/apt/lists/* \
     && gcloud --version
 
+# Zoho Catalyst CLI, pinned
+#
+# npm skips the package's install scripts here. That's harmless: its
+# postinstall only checks the Node.js version, and the skipped native builds
+# (ssh2, cpu-features) are optional speedups with pure-JS fallbacks.
+ARG CATALYST_CLI_VERSION=1.29.1
+RUN npm install -g zcatalyst-cli@${CATALYST_CLI_VERSION} \
+    && catalyst --version
+
 # Claude Code CLI
 #
 # The version is pinned via CLAUDE_CODE_VERSION, so the in-app auto-updater is
