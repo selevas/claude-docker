@@ -10,7 +10,7 @@ INTERNAL_PORT="${DEV_INTERNAL_PORT:-5173}"
 
 usage() {
   cat <<EOF
-Usage: $(basename "$0") [-p external-port] [--gcloud] [extra-path ...]
+Usage: $(basename "$0") [-p external-port] [--gcloud] [--catalyst] [extra-path ...]
 
 Start the ${IMAGE} container with the current directory mounted at
 /workspace/${PROJECT_NAME}.
@@ -18,6 +18,7 @@ Start the ${IMAGE} container with the current directory mounted at
 Options:
   -p PORT      Host port for the dev server (overrides DEV_EXTERNAL_PORT)
   --gcloud     Mount the host's gcloud config and credentials
+  --catalyst   Mount the host's Zoho Catalyst CLI login
   -h, --help   Show this help and exit
 
 Each extra-path is mounted read-write at /workspace/<dirname>.
@@ -27,13 +28,17 @@ Environment:
   DEV_INTERNAL_PORT  Container port for the dev server (default: 5173)
   PNPM_STORE_DIR     Host pnpm store (default: ~/.cache/claude-sandbox/pnpm-store)
   CLOUDSDK_CONFIG    Host gcloud config dir used by --gcloud (default: ~/.config/gcloud)
+  CATALYST_CONFIG_DIR  Host Catalyst config dir used by --catalyst
+                     (default: ~/.config/zcatalyst-cli-nodejs)
 EOF
 }
 
 # -p overrides DEV_EXTERNAL_PORT, e.g. to run several sandboxes side by side.
 # --gcloud mounts the host's gcloud config and credentials (see below).
+# --catalyst mounts the host's Zoho Catalyst CLI login (see below).
 # getopts has no long options, so "-:" routes --name through as opt "-".
 GCLOUD=0
+CATALYST=0
 while getopts ":hp:-:" opt; do
   case "${opt}" in
     h) usage; exit 0 ;;
@@ -42,6 +47,7 @@ while getopts ":hp:-:" opt; do
       case "${OPTARG}" in
         help) usage; exit 0 ;;
         gcloud) GCLOUD=1 ;;
+        catalyst) CATALYST=1 ;;
         *) echo "Unknown option: --${OPTARG}" >&2; exit 1 ;;
       esac
       ;;
@@ -60,7 +66,7 @@ PNPM_STORE="${PNPM_STORE_DIR:-${HOME}/.cache/claude-sandbox/pnpm-store}"
 mkdir -p "${PNPM_STORE}"
 
 # Build extra mount flags from any additional arguments.
-# Usage: claude-docker [-p external-port] [--gcloud] [extra-path ...]
+# Usage: claude-docker [-p external-port] [--gcloud] [--catalyst] [extra-path ...]
 # Each path is mounted read-write at /workspace/<dirname>.
 EXTRA_MOUNTS=()
 
@@ -72,6 +78,16 @@ if [[ "${GCLOUD}" -eq 1 ]]; then
   GCLOUD_CONFIG="${CLOUDSDK_CONFIG:-${HOME}/.config/gcloud}"
   mkdir -p "${GCLOUD_CONFIG}"
   EXTRA_MOUNTS+=(-v "${GCLOUD_CONFIG}":/root/.config/gcloud)
+fi
+
+# The host's Zoho Catalyst CLI login, so `catalyst deploy` works without
+# logging in again inside each --rm container. Opt-in for the same reason as
+# --gcloud. Read-write, since the CLI refreshes tokens here. The directory
+# also holds the key that encrypts those tokens, so both move together.
+if [[ "${CATALYST}" -eq 1 ]]; then
+  CATALYST_CONFIG="${CATALYST_CONFIG_DIR:-${XDG_CONFIG_HOME:-${HOME}/.config}/zcatalyst-cli-nodejs}"
+  mkdir -p -m 700 "${CATALYST_CONFIG}"
+  EXTRA_MOUNTS+=(-v "${CATALYST_CONFIG}":/root/.config/zcatalyst-cli-nodejs)
 fi
 
 for dir in "$@"; do
