@@ -8,15 +8,39 @@ PROJECT_NAME=$(basename "$(pwd)")
 EXTERNAL_PORT="${DEV_EXTERNAL_PORT:-5173}"
 INTERNAL_PORT="${DEV_INTERNAL_PORT:-5173}"
 
+usage() {
+  cat <<EOF
+Usage: $(basename "$0") [-p external-port] [--gcloud] [extra-path ...]
+
+Start the ${IMAGE} container with the current directory mounted at
+/workspace/${PROJECT_NAME}.
+
+Options:
+  -p PORT      Host port for the dev server (overrides DEV_EXTERNAL_PORT)
+  --gcloud     Mount the host's gcloud config and credentials
+  -h, --help   Show this help and exit
+
+Each extra-path is mounted read-write at /workspace/<dirname>.
+
+Environment:
+  DEV_EXTERNAL_PORT  Host port for the dev server (default: 5173)
+  DEV_INTERNAL_PORT  Container port for the dev server (default: 5173)
+  PNPM_STORE_DIR     Host pnpm store (default: ~/.cache/claude-sandbox/pnpm-store)
+  CLOUDSDK_CONFIG    Host gcloud config dir used by --gcloud (default: ~/.config/gcloud)
+EOF
+}
+
 # -p overrides DEV_EXTERNAL_PORT, e.g. to run several sandboxes side by side.
 # --gcloud mounts the host's gcloud config and credentials (see below).
 # getopts has no long options, so "-:" routes --name through as opt "-".
 GCLOUD=0
-while getopts ":p:-:" opt; do
+while getopts ":hp:-:" opt; do
   case "${opt}" in
+    h) usage; exit 0 ;;
     p) EXTERNAL_PORT="${OPTARG}" ;;
     -)
       case "${OPTARG}" in
+        help) usage; exit 0 ;;
         gcloud) GCLOUD=1 ;;
         *) echo "Unknown option: --${OPTARG}" >&2; exit 1 ;;
       esac
